@@ -1,6 +1,6 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
-async fn generate_ppt(design_path: String, input_path: String, out_path: String, is_raw: bool) -> Result<(), String> {
+async fn generate_ppt(design_path: String, input_path: String, out_path: String, is_raw: bool, ai_provider: String, api_key: String) -> Result<(), String> {
     use std::process::Command;
     
     // Determine the path to the engine directory relative to current execution context.
@@ -13,6 +13,8 @@ async fn generate_ppt(design_path: String, input_path: String, out_path: String,
        
     if is_raw {
         cmd.arg("--raw");
+        cmd.arg("--provider").arg(ai_provider);
+        cmd.arg("--api-key").arg(api_key);
     }
 
     let status = cmd.status()

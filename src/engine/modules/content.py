@@ -1,25 +1,17 @@
 import os
+import requests
 from google import genai
 from dataclasses import dataclass
 from typing import List
 
 @dataclass
 class SlideModel:
-    kind: str  # e.g., 'title', 'bullets'
+    kind: str
     meta: dict
-    content: str  # The raw markdown content for this slide
+    content: str
 
-def generate_slide_dsl_with_llm(raw_text: str) -> str:
-    """
-    Uses Gemini API to convert raw text into our @slide DSL markdown.
-    """
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY environment variable is not set.")
-    
-    client = genai.Client(api_key=api_key)
-    
-    prompt = f"""
+def get_system_prompt() -> str:
+    return """
     You are an expert presentation designer. Convert the following raw text into a structured presentation using our Slide DSL.
     
     Rules:
@@ -36,21 +28,66 @@ def generate_slide_dsl_with_llm(raw_text: str) -> str:
     ## Key Points
     - First point
     - Second point
-    
-    Raw Text:
-    {raw_text}
     """
-    
+
+def generate_with_gemini(api_key: str, raw_text: str) -> str:
+    client = genai.Client(api_key=api_key)
+    prompt = f"{get_system_prompt()}\n\nRaw Text:\n{raw_text}"
     response = client.models.generate_content(
         model='gemini-2.5-flash',
         contents=prompt
     )
     return response.text
 
+def generate_with_perplexity(api_key: str, raw_text: str) -> str:
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "sonar-pro",
+        "messages": [
+            {"role": "system", "content": get_system_prompt()},
+            {"role": "user", "content": f"Convert this to slides:\n{raw_text}"}
+        ]
+    }
+    response = requests.post("https://api.perplexity.ai/chat/completions", json=payload, headers=headers)
+    response.raise_for_status()
+    return response.json()["choices"][0]["message"]["content"]
+
+def generate_with_openai(api_key: str, raw_text: str) -> str:
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "gpt-4o",
+        "messages": [
+            {"role": "system", "content": get_system_prompt()},
+            {"role": "user", "content": f"Convert this to slides:\n{raw_text}"}
+        ]
+    }
+    response = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers)
+    response.raise_for_status()
+    return response.json()["choices"][0]["message"]["content"]
+
+def generate_slide_dsl_with_llm(raw_text: str, provider: str, api_key: str) -> str:
+    if not api_key:
+        api_key = os.environ.get(f"{provider.upper()}_API_KEY", "")
+        if not api_key:
+            raise ValueError(f"API key for {provider} is not provided or set in environment variables.")
+            
+    provider = provider.lower()
+    if provider == "gemini":
+        return generate_with_gemini(api_key, raw_text)
+    elif provider == "perplexity":
+        return generate_with_perplexity(api_key, raw_text)
+    elif provider == "openai":
+        return generate_with_openai(api_key, raw_text)
+    else:
+        raise ValueError(f"Unsupported AI provider: {provider}")
+
 def parse_slide_dsl(markdown_text: str) -> List[SlideModel]:
-    """
-    Parses the @slide DSL markdown into SlideModel objects.
-    """
     slides = []
     blocks = markdown_text.split("---")
     
@@ -60,7 +97,7 @@ def parse_slide_dsl(markdown_text: str) -> List[SlideModel]:
             continue
             
         lines = block.split('\n')
-        kind = "bullets" # default
+        kind = "bullets"
         meta = {}
         content_lines = []
         
@@ -68,7 +105,6 @@ def parse_slide_dsl(markdown_text: str) -> List[SlideModel]:
             if line.startswith("@slide:"):
                 kind = line.split(":")[1].strip()
             elif line.startswith("@"):
-                # parse other meta tags like @layout: 2col
                 parts = line.split(":", 1)
                 if len(parts) == 2:
                     meta[parts[0].strip('@')] = parts[1].strip()
@@ -79,14 +115,9 @@ def parse_slide_dsl(markdown_text: str) -> List[SlideModel]:
         
     return slides
 
-def process_input(input_text: str, is_raw_data: bool = True) -> List[SlideModel]:
-    """
-    Main entry point for Module 2.
-    If is_raw_data is True, it first runs through the LLM.
-    Then parses the DSL into SlideModels.
-    """
+def process_input(input_text: str, is_raw_data: bool = True, provider: str = "gemini", api_key: str = "") -> List[SlideModel]:
     if is_raw_data:
-        dsl_text = generate_slide_dsl_with_llm(input_text)
+        dsl_text = generate_slide_dsl_with_llm(input_text, provider, api_key)
     else:
         dsl_text = input_text
         

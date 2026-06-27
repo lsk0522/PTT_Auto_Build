@@ -6,8 +6,9 @@ import "./App.css";
 function App() {
   const [designPath, setDesignPath] = useState<string>("");
   const [inputPath, setInputPath] = useState<string>("");
-  const [rawText, setRawText] = useState<string>("");
   const [isRaw, setIsRaw] = useState<boolean>(true);
+  const [aiProvider, setAiProvider] = useState<string>("gemini");
+  const [apiKey, setApiKey] = useState<string>("");
   const [status, setStatus] = useState<string>("");
 
   const handleSelectDesign = async () => {
@@ -41,14 +42,13 @@ function App() {
 
       setStatus("Generating PPTX...");
       
-      // If we are using raw text instead of file path, we would need to save it to a temp file first, 
-      // or pass the text directly. For simplicity in MVP, we assume inputPath is used.
-      
       await invoke("generate_ppt", {
         designPath: designPath,
         inputPath: inputPath,
         outPath: outPath,
-        isRaw: isRaw
+        isRaw: isRaw,
+        aiProvider: aiProvider,
+        apiKey: apiKey
       });
       
       setStatus(`Success! Saved to ${outPath}`);
@@ -83,7 +83,29 @@ function App() {
         </label>
       </div>
 
-      <button onClick={handleGenerate} disabled={!designPath || !inputPath}>
+      {isRaw && (
+        <>
+          <div className="row">
+            <label>AI Provider: </label>
+            <select value={aiProvider} onChange={(e) => setAiProvider(e.target.value)}>
+              <option value="gemini">Gemini</option>
+              <option value="perplexity">Perplexity</option>
+              <option value="openai">OpenAI</option>
+            </select>
+          </div>
+          <div className="row">
+            <label>API Key: </label>
+            <input 
+              type="password" 
+              placeholder="Enter your API Key" 
+              value={apiKey} 
+              onChange={(e) => setApiKey(e.target.value)} 
+            />
+          </div>
+        </>
+      )}
+
+      <button onClick={handleGenerate} disabled={!designPath || !inputPath || (isRaw && !apiKey)}>
         Generate PPTX
       </button>
       
