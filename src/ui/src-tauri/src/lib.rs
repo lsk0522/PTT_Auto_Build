@@ -1,6 +1,6 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
-async fn generate_ppt(design_path: String, input_path: String, input_text: String, out_path: String, is_raw: bool, ai_provider: String, api_key: String) -> Result<(), String> {
+async fn generate_ppt(design_path: String, input_path: String, input_text: String, out_path: String, is_raw: bool, ai_provider: String, api_key: String, language: String) -> Result<(), String> {
     use std::process::Command;
     use std::io::Write;
     
@@ -23,6 +23,7 @@ async fn generate_ppt(design_path: String, input_path: String, input_text: Strin
         cmd.arg("--raw");
         cmd.arg("--provider").arg(ai_provider);
         cmd.arg("--api-key").arg(api_key);
+        cmd.arg("--language").arg(language);
     }
 
     let status = cmd.status()
@@ -36,13 +37,14 @@ async fn generate_ppt(design_path: String, input_path: String, input_text: Strin
 }
 
 #[tauri::command]
-async fn chat_with_ai(message: String, provider: String, api_key: String) -> Result<String, String> {
+async fn chat_with_ai(message: String, provider: String, api_key: String, language: String) -> Result<String, String> {
     use std::process::Command;
     let output = Command::new("python")
         .arg("../engine/chat.py")
         .arg("--message").arg(message)
         .arg("--provider").arg(provider)
         .arg("--api-key").arg(api_key)
+        .arg("--language").arg(language)
         .output()
         .map_err(|e| format!("Failed to spawn python process: {}", e))?;
 

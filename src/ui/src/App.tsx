@@ -13,6 +13,7 @@ function App() {
   const [designPath, setDesignPath] = useState<string>("");
   const [aiProvider, setAiProvider] = useState<string>("gemini");
   const [apiKey, setApiKey] = useState<string>("");
+  const [language, setLanguage] = useState<string>("Korean");
   const [status, setStatus] = useState<string>("Ready to create amazing presentations ✨");
   
   // Chat State
@@ -33,12 +34,17 @@ function App() {
   }, [messages]);
 
   const handleSelectDesign = async () => {
-    const selected = await open({
-      multiple: false,
-      filters: [{ name: "Markdown", extensions: ["md"] }],
-    });
-    if (selected && !Array.isArray(selected)) {
-      setDesignPath(selected);
+    try {
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: "Markdown", extensions: ["md"] }],
+      });
+      if (selected && !Array.isArray(selected)) {
+        setDesignPath(selected);
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus(`Failed to open file dialog: ${err}`);
     }
   };
 
@@ -59,7 +65,8 @@ function App() {
       const responseText: string = await invoke("chat_with_ai", {
         message: userMessage.text,
         provider: aiProvider,
-        apiKey: apiKey
+        apiKey: apiKey,
+        language: language
       });
 
       const aiMessage: ChatMessage = { id: (Date.now() + 1).toString(), role: 'ai', text: responseText };
@@ -103,7 +110,8 @@ function App() {
         outPath: outPath,
         isRaw: true, // It needs to be parsed by the LLM in the engine into DSL if it isn't already DSL
         aiProvider: aiProvider,
-        apiKey: apiKey
+        apiKey: apiKey,
+        language: language
       });
       
       setStatus(`✅ Success! Presentation saved to ${outPath}`);
@@ -152,7 +160,17 @@ function App() {
         <div className="settings-header">PPT Generator</div>
 
         <div className="setting-group">
-          <label>1. Select AI Provider</label>
+          <label>1. Output Language</label>
+          <select value={language} onChange={(e) => setLanguage(e.target.value)}>
+            <option value="Korean">Korean (한국어)</option>
+            <option value="English">English (영어)</option>
+            <option value="Japanese">Japanese (日本語)</option>
+            <option value="Chinese">Chinese (中文)</option>
+          </select>
+        </div>
+
+        <div className="setting-group">
+          <label>2. Select AI Provider</label>
           <select value={aiProvider} onChange={(e) => setAiProvider(e.target.value)}>
             <option value="gemini">Google Gemini (Flash)</option>
             <option value="perplexity">Perplexity (Sonar)</option>
@@ -161,7 +179,7 @@ function App() {
         </div>
 
         <div className="setting-group">
-          <label>2. API Key Authentication</label>
+          <label>3. API Key Authentication</label>
           <input 
             type="password" 
             placeholder={`Enter your ${aiProvider.toUpperCase()} API Key`}
@@ -171,7 +189,7 @@ function App() {
         </div>
 
         <div className="setting-group">
-          <label>3. Design Theme (Optional)</label>
+          <label>4. Design Theme (Optional)</label>
           <button className="btn" onClick={handleSelectDesign}>
             {designPath ? 'Change Theme File' : 'Select DESIGN.md'}
           </button>

@@ -10,9 +10,10 @@ class SlideModel:
     meta: dict
     content: str
 
-def get_system_prompt() -> str:
-    return """
+def get_system_prompt(language: str = "Korean") -> str:
+    return f"""
     You are an expert presentation designer. Convert the following raw text into a structured presentation using our Slide DSL.
+    IMPORTANT: You must write the output slides (titles, bullet points, and subtitles) in {language}.
     
     Rules:
     1. Separate slides with `---`
@@ -30,16 +31,16 @@ def get_system_prompt() -> str:
     - Second point
     """
 
-def generate_with_gemini(api_key: str, raw_text: str) -> str:
+def generate_with_gemini(api_key: str, raw_text: str, language: str) -> str:
     client = genai.Client(api_key=api_key)
-    prompt = f"{get_system_prompt()}\n\nRaw Text:\n{raw_text}"
+    prompt = f"{get_system_prompt(language)}\n\nRaw Text:\n{raw_text}"
     response = client.models.generate_content(
         model='gemini-2.5-flash',
         contents=prompt
     )
     return response.text
 
-def generate_with_perplexity(api_key: str, raw_text: str) -> str:
+def generate_with_perplexity(api_key: str, raw_text: str, language: str) -> str:
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
@@ -47,7 +48,7 @@ def generate_with_perplexity(api_key: str, raw_text: str) -> str:
     payload = {
         "model": "sonar-pro",
         "messages": [
-            {"role": "system", "content": get_system_prompt()},
+            {"role": "system", "content": get_system_prompt(language)},
             {"role": "user", "content": f"Convert this to slides:\n{raw_text}"}
         ]
     }
@@ -55,7 +56,7 @@ def generate_with_perplexity(api_key: str, raw_text: str) -> str:
     response.raise_for_status()
     return response.json()["choices"][0]["message"]["content"]
 
-def generate_with_openai(api_key: str, raw_text: str) -> str:
+def generate_with_openai(api_key: str, raw_text: str, language: str) -> str:
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
@@ -63,7 +64,7 @@ def generate_with_openai(api_key: str, raw_text: str) -> str:
     payload = {
         "model": "gpt-4o",
         "messages": [
-            {"role": "system", "content": get_system_prompt()},
+            {"role": "system", "content": get_system_prompt(language)},
             {"role": "user", "content": f"Convert this to slides:\n{raw_text}"}
         ]
     }
@@ -71,7 +72,7 @@ def generate_with_openai(api_key: str, raw_text: str) -> str:
     response.raise_for_status()
     return response.json()["choices"][0]["message"]["content"]
 
-def generate_slide_dsl_with_llm(raw_text: str, provider: str, api_key: str) -> str:
+def generate_slide_dsl_with_llm(raw_text: str, provider: str, api_key: str, language: str = "Korean") -> str:
     if not api_key:
         api_key = os.environ.get(f"{provider.upper()}_API_KEY", "")
         if not api_key:
@@ -79,11 +80,11 @@ def generate_slide_dsl_with_llm(raw_text: str, provider: str, api_key: str) -> s
             
     provider = provider.lower()
     if provider == "gemini":
-        return generate_with_gemini(api_key, raw_text)
+        return generate_with_gemini(api_key, raw_text, language)
     elif provider == "perplexity":
-        return generate_with_perplexity(api_key, raw_text)
+        return generate_with_perplexity(api_key, raw_text, language)
     elif provider == "openai":
-        return generate_with_openai(api_key, raw_text)
+        return generate_with_openai(api_key, raw_text, language)
     else:
         raise ValueError(f"Unsupported AI provider: {provider}")
 
@@ -115,9 +116,9 @@ def parse_slide_dsl(markdown_text: str) -> List[SlideModel]:
         
     return slides
 
-def process_input(input_text: str, is_raw_data: bool = True, provider: str = "gemini", api_key: str = "") -> List[SlideModel]:
+def process_input(input_text: str, is_raw_data: bool = True, provider: str = "gemini", api_key: str = "", language: str = "Korean") -> List[SlideModel]:
     if is_raw_data:
-        dsl_text = generate_slide_dsl_with_llm(input_text, provider, api_key)
+        dsl_text = generate_slide_dsl_with_llm(input_text, provider, api_key, language)
     else:
         dsl_text = input_text
         
