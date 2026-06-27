@@ -15,7 +15,7 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-cd ui
+cd ../src/ui
 
 echo Installing node modules...
 call npm install

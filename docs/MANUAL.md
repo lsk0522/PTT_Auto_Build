@@ -40,5 +40,5 @@ PPT의 내용을 작성하는 방법은 두 가지입니다.
 3. 자동으로 슬라이드가 나누어집니다.
 
 ## 3. 프로그램 실행
-- **CLI 모드**: `python engine/design2ppt.py --design DESIGN.md --input input.txt --out result.pptx --raw`
-- **UI 모드**: `run_ui.bat`을 실행해 웹 형태의 프로그램에서 파일을 클릭하여 업로드하고 Generate 버튼을 누르세요.
+- **CLI 모드**: `python src/engine/design2ppt.py --design tests/test_design.md --input tests/test_input.txt --out result.pptx --raw`
+- **UI 모드**: `scripts/run_ui.bat`을 실행해 웹 형태의 프로그램에서 파일을 클릭하여 업로드하고 Generate 버튼을 누르세요.

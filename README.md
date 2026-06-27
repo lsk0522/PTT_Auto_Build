@@ -15,16 +15,16 @@ LLM(Gemini)을 활용해 텍스트를 구조화된 슬라이드 형태로 자동
 
 ### 1. Python CLI 엔진 테스트
 ```bash
-cd engine
+cd src/engine
 pip install -r requirements.txt
 ```
 이후 상위 디렉터리에서 자동화 스크립트를 실행합니다.
 ```cmd
-run_test.bat
+scripts\run_test.bat
 ```
 
 ### 2. 데스크톱 앱 실행 (Rust 설치 필요)
 Rust([rustup.rs](https://rustup.rs/))가 설치된 환경에서 다음 스크립트를 실행합니다.
 ```cmd
-run_ui.bat
+scripts\run_ui.bat
 ```

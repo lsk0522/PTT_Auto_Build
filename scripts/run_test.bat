@@ -18,7 +18,7 @@ if "%GEMINI_API_KEY%"=="" (
 
 echo.
 echo Installing dependencies (if not already installed)...
-cd engine
+cd ../src/engine
 pip install -r requirements.txt
 if %errorlevel% neq 0 (
     echo Error: Failed to install requirements.
@@ -28,7 +28,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo Running the PPT Generator Engine...
-python design2ppt.py --design ../test_design.md --input ../test_input.txt --out ../output.pptx --raw
+python design2ppt.py --design ../../tests/test_design.md --input ../../tests/test_input.txt --out ../../output.pptx --raw
 
 if %errorlevel% equ 0 (
     echo.
