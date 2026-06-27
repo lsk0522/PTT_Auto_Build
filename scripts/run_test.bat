@@ -35,12 +35,12 @@ if %errorlevel% neq 0 (
 
 echo.
 echo Running the PPT Generator Engine...
-python design2ppt.py --design ../../tests/test_design.md --input ../../tests/test_input.txt --out ../../output.pptx --raw
+python design2ppt.py --design ../../tests/test_design.md --input ../../tests/test_input.txt --out ../../output/presentation.pptx --raw
 
 if %errorlevel% equ 0 (
     echo.
     echo ==========================================
-    echo Success! output.pptx has been generated.
+    echo Success! PPTX has been generated in the output/ folder.
     echo ==========================================
 ) else (
     echo.
