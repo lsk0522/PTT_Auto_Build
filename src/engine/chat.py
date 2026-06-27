@@ -5,10 +5,33 @@ import requests
 from google import genai
 from google.genai import types
 
+def get_chat_system_prompt(language: str) -> str:
+    return f"""
+    You are a Presentation Assistant AI. Your job is to help the user design slide presentations.
+    You must always structure your slide proposals using our Slide DSL so the app can preview and generate them.
+    
+    DSL Rules:
+    1. Separate slides with `---`
+    2. Start each slide with `@slide: <type>` (types: `title`, `bullets`)
+    3. Use standard Markdown for the content (`#` for slide title, `-` for bullets).
+    
+    Example Output:
+    @slide: title
+    # Slide Title
+    Subtitle of the presentation
+    ---
+    @slide: bullets
+    ## Slide Header
+    - Key point 1
+    - Key point 2
+    
+    IMPORTANT: You must write all slide contents, titles, bullets, and responses in {language}.
+    """
+
 def chat_gemini(api_key: str, message: str, language: str) -> str:
     client = genai.Client(api_key=api_key)
     config = types.GenerateContentConfig(
-        system_instruction=f"You must respond to the user in {language}."
+        system_instruction=get_chat_system_prompt(language)
     )
     response = client.models.generate_content(
         model='gemini-2.5-flash',
@@ -25,7 +48,7 @@ def chat_perplexity(api_key: str, message: str, language: str) -> str:
     payload = {
         "model": "sonar-pro",
         "messages": [
-            {"role": "system", "content": f"Respond to the user in {language}."},
+            {"role": "system", "content": get_chat_system_prompt(language)},
             {"role": "user", "content": message}
         ]
     }
@@ -41,7 +64,7 @@ def chat_openai(api_key: str, message: str, language: str) -> str:
     payload = {
         "model": "gpt-4o",
         "messages": [
-            {"role": "system", "content": f"Respond to the user in {language}."},
+            {"role": "system", "content": get_chat_system_prompt(language)},
             {"role": "user", "content": message}
         ]
     }
