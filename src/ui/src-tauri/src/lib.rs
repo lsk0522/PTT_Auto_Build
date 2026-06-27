@@ -14,7 +14,7 @@ async fn generate_ppt(design_path: String, input_path: String, input_text: Strin
     };
 
     let mut cmd = Command::new("python");
-    cmd.arg("../engine/design2ppt.py")
+    cmd.arg("../../engine/design2ppt.py")
        .arg("--design").arg(design_path)
        .arg("--input").arg(actual_input_path)
        .arg("--out").arg(out_path);
@@ -40,7 +40,7 @@ async fn generate_ppt(design_path: String, input_path: String, input_text: Strin
 async fn chat_with_ai(message: String, provider: String, api_key: String, language: String) -> Result<String, String> {
     use std::process::Command;
     let output = Command::new("python")
-        .arg("../engine/chat.py")
+        .arg("../../engine/chat.py")
         .arg("--message").arg(message)
         .arg("--provider").arg(provider)
         .arg("--api-key").arg(api_key)
