@@ -103,7 +103,7 @@ const translations: Record<string, any> = {
 function App() {
   const [designPath, setDesignPath] = useState<string>("");
   const [aiProvider, setAiProvider] = useState<string>("gemini");
-  const [apiKey, setApiKey] = useState<string>("AIzaSyBx...");
+  const [apiKey, setApiKey] = useState<string>("");
   const [language, setLanguage] = useState<string>("Korean");
   const [status, setStatus] = useState<string>("Ready to create amazing presentations ✨");
   

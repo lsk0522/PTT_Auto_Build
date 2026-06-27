@@ -3,8 +3,6 @@ import argparse
 import os
 import requests
 from google import genai
-
-from google import genai
 from google.genai import types
 
 def chat_gemini(api_key: str, message: str, language: str) -> str:
@@ -61,7 +59,7 @@ def main():
 
     api_key = args.api_key or os.environ.get(f"{args.provider.upper()}_API_KEY", "")
     if not api_key:
-        print("Error: API Key is missing")
+        print("Error: API Key is missing", file=sys.stderr)
         sys.exit(1)
 
     provider = args.provider.lower()
@@ -73,10 +71,10 @@ def main():
         elif provider == "openai":
             print(chat_openai(api_key, args.message, args.language))
         else:
-            print(f"Error: Unknown provider {provider}")
+            print(f"Error: Unknown provider {provider}", file=sys.stderr)
             sys.exit(1)
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
