@@ -31,12 +31,18 @@ def get_system_prompt(language: str = "Korean") -> str:
     - Second point
     """
 
+from google import genai
+from google.genai import types
+
 def generate_with_gemini(api_key: str, raw_text: str, language: str) -> str:
     client = genai.Client(api_key=api_key)
-    prompt = f"{get_system_prompt(language)}\n\nRaw Text:\n{raw_text}"
+    config = types.GenerateContentConfig(
+        system_instruction=get_system_prompt(language)
+    )
     response = client.models.generate_content(
         model='gemini-2.5-flash',
-        contents=prompt
+        contents=f"Raw Text:\n{raw_text}",
+        config=config
     )
     return response.text
 

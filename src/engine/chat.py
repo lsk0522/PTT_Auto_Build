@@ -4,12 +4,18 @@ import os
 import requests
 from google import genai
 
+from google import genai
+from google.genai import types
+
 def chat_gemini(api_key: str, message: str, language: str) -> str:
     client = genai.Client(api_key=api_key)
-    prompt = f"System: Respond to the user in {language}.\n\nUser: {message}"
+    config = types.GenerateContentConfig(
+        system_instruction=f"You must respond to the user in {language}."
+    )
     response = client.models.generate_content(
         model='gemini-2.5-flash',
-        contents=prompt
+        contents=message,
+        config=config
     )
     return response.text
 
