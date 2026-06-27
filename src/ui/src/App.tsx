@@ -9,6 +9,31 @@ interface ChatMessage {
   text: string;
 }
 
+interface ThemeTokens {
+  primary_color: string;
+  secondary_color: string;
+  bg_color: string;
+  text_color: string;
+  title_font: string;
+  body_font: string;
+}
+
+const defaultTheme: ThemeTokens = {
+  primary_color: "#0075de",
+  secondary_color: "#f5f5f5",
+  bg_color: "#ffffff",
+  text_color: "#1f1f1f",
+  title_font: "Inter",
+  body_font: "Inter"
+};
+
+interface ParsedSlide {
+  kind: 'title' | 'bullets';
+  title: string;
+  subtitle?: string;
+  bullets?: string[];
+}
+
 const translations: Record<string, any> = {
   Korean: {
     title: "🤖 발표자료 생성 도우미",
@@ -30,7 +55,9 @@ const translations: Record<string, any> = {
     statusThinking: "AI가 생각하는 중...",
     statusGenerating: "✨ 파워포인트 파일을 생성하는 중...",
     statusSuccess: "✅ 성공! 발표자료가 저장되었습니다: ",
-    statusError: "❌ 실패: "
+    statusError: "❌ 실패: ",
+    previewTitle: "📊 실시간 슬라이드 미리보기",
+    previewEmpty: "AI와 대화를 시작하면 여기에 실시간 슬라이드가 미리보기로 뜹니다."
   },
   English: {
     title: "🤖 Presentation Assistant",
@@ -52,7 +79,9 @@ const translations: Record<string, any> = {
     statusThinking: "AI is thinking...",
     statusGenerating: "✨ Generating your PowerPoint...",
     statusSuccess: "✅ Success! Presentation saved to: ",
-    statusError: "❌ Generation Failed: "
+    statusError: "❌ Generation Failed: ",
+    previewTitle: "📊 Real-time Slide Preview",
+    previewEmpty: "Start chatting with the AI to see a live preview of your slides here."
   },
   Japanese: {
     title: "🤖 プレゼンテーション アシスタント",
@@ -74,7 +103,9 @@ const translations: Record<string, any> = {
     statusThinking: "AIが考えています...",
     statusGenerating: "✨ パワーポイントを作成しています...",
     statusSuccess: "✅ 成功！プレゼンテーションが保存されました: ",
-    statusError: "❌ エクスポート失敗: "
+    statusError: "❌ エクスポート失敗: ",
+    previewTitle: "📊 リアルタイムスライドプレビュー",
+    previewEmpty: "AIと会話を始めると、ここにリアルタイムでスライドのプレビューが表示されます。"
   },
   Chinese: {
     title: "🤖 演示文稿助手",
@@ -96,9 +127,49 @@ const translations: Record<string, any> = {
     statusThinking: "AI 正在思考...",
     statusGenerating: "✨ 正在生成您的幻灯片...",
     statusSuccess: "✅ 成功！演示文稿已保存至: ",
-    statusError: "❌ 导出失败: "
+    statusError: "❌ 导出失败: ",
+    previewTitle: "📊 实时幻灯片预览",
+    previewEmpty: "与 AI 开始对话后，这里将实时显示幻灯片的预览。"
   }
 };
+
+function parseSlides(text: string): ParsedSlide[] {
+  const slides: ParsedSlide[] = [];
+  const blocks = text.split("---");
+  
+  for (let block of blocks) {
+    block = block.trim();
+    if (!block) continue;
+    
+    const lines = block.split('\n');
+    let kind: 'title' | 'bullets' = 'bullets';
+    let title = "";
+    let subtitle = "";
+    const bullets: string[] = [];
+    
+    for (let line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("@slide:")) {
+        kind = trimmed.split(":")[1].trim() as any;
+      } else if (trimmed.startsWith("#")) {
+        title = trimmed.replace(/^#+\s*/, "");
+      } else if (trimmed.startsWith("-")) {
+        bullets.push(trimmed.replace(/^-\s*/, ""));
+      } else if (trimmed && !trimmed.startsWith("@")) {
+        if (!title) {
+          title = trimmed;
+        } else {
+          subtitle = trimmed;
+        }
+      }
+    }
+    
+    if (title || bullets.length > 0) {
+      slides.push({ kind, title, subtitle, bullets });
+    }
+  }
+  return slides;
+}
 
 function App() {
   const [designPath, setDesignPath] = useState<string>("");
@@ -106,6 +177,7 @@ function App() {
   const [apiKey, setApiKey] = useState<string>("");
   const [language, setLanguage] = useState<string>("Korean");
   const [status, setStatus] = useState<string>("Ready to create amazing presentations ✨");
+  const [themeData, setThemeData] = useState<ThemeTokens>(defaultTheme);
   
   const t = translations[language] || translations["Korean"];
 
@@ -118,6 +190,31 @@ function App() {
   const [chatInput, setChatInput] = useState<string>("");
   const [isChatting, setIsChatting] = useState<boolean>(false);
   const chatHistoryRef = useRef<HTMLDivElement>(null);
+
+  // Parse slides from the last AI message
+  const aiResponses = messages.filter(m => m.role === 'ai' && m.id !== 'intro');
+  const latestAiContent = aiResponses.length > 0 ? aiResponses[aiResponses.length - 1].text : "";
+  const parsedSlides = parseSlides(latestAiContent);
+
+  // Sync theme colors dynamically
+  useEffect(() => {
+    if (!designPath) {
+      setThemeData(defaultTheme);
+      return;
+    }
+    
+    const loadTheme = async () => {
+      try {
+        const jsonStr: string = await invoke("get_theme_tokens", { designPath });
+        const parsed = JSON.parse(jsonStr);
+        setThemeData(parsed);
+      } catch (err) {
+        console.error("Failed to parse theme:", err);
+      }
+    };
+    
+    loadTheme();
+  }, [designPath]);
 
   // Update intro message when language changes
   useEffect(() => {
@@ -187,9 +284,7 @@ function App() {
       return;
     }
     
-    const aiResponses = messages.filter(m => m.role === 'ai' && m.id !== 'intro');
-    if (aiResponses.length === 0) return;
-    const latestAiContent = aiResponses[aiResponses.length - 1].text;
+    if (!latestAiContent) return;
 
     try {
       const outPath = await save({
@@ -253,55 +348,101 @@ function App() {
         </div>
       </div>
 
-      {/* Right Panel: Settings & Generation */}
+      {/* Right Panel: Settings, Preview & Export */}
       <div className="panel settings-panel">
         <div className="settings-header">{t.settingsTitle}</div>
 
-        <div className="setting-group">
-          <label>{t.langLabel}</label>
-          <select value={language} onChange={(e) => setLanguage(e.target.value)}>
-            <option value="Korean">Korean (한국어)</option>
-            <option value="English">English (영어)</option>
-            <option value="Japanese">Japanese (日本語)</option>
-            <option value="Chinese">Chinese (中文)</option>
-          </select>
+        <div className="settings-grid">
+          <div className="setting-group">
+            <label>{t.langLabel}</label>
+            <select value={language} onChange={(e) => setLanguage(e.target.value)}>
+              <option value="Korean">Korean (한국어)</option>
+              <option value="English">English (영어)</option>
+              <option value="Japanese">Japanese (日本語)</option>
+              <option value="Chinese">Chinese (中文)</option>
+            </select>
+          </div>
+
+          <div className="setting-group">
+            <label>{t.providerLabel}</label>
+            <select value={aiProvider} onChange={(e) => setAiProvider(e.target.value)}>
+              <option value="gemini">Google Gemini</option>
+              <option value="perplexity">Perplexity</option>
+              <option value="openai">OpenAI GPT</option>
+            </select>
+          </div>
+
+          <div className="setting-group full-width">
+            <label>{t.apiKeyLabel}</label>
+            <input 
+              type="password" 
+              placeholder={t.apiKeyPlaceholder}
+              value={apiKey} 
+              onChange={(e) => setApiKey(e.target.value)} 
+            />
+          </div>
+
+          <div className="setting-group full-width">
+            <label>{t.themeLabel}</label>
+            <button className="btn" onClick={handleSelectDesign}>
+              {designPath ? t.themeChange : t.themeSelect}
+            </button>
+            <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.2rem', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+              {designPath || t.themeNone}
+            </span>
+          </div>
         </div>
 
-        <div className="setting-group">
-          <label>{t.providerLabel}</label>
-          <select value={aiProvider} onChange={(e) => setAiProvider(e.target.value)}>
-            <option value="gemini">Google Gemini (Flash)</option>
-            <option value="perplexity">Perplexity (Sonar)</option>
-            <option value="openai">OpenAI (GPT-4o)</option>
-          </select>
+        {/* Real-time Slide Preview Section */}
+        <div className="preview-section">
+          <div className="preview-title">{t.previewTitle}</div>
+          <div className="preview-container">
+            {parsedSlides.length > 0 ? (
+              parsedSlides.map((slide, index) => (
+                <div 
+                  key={index} 
+                  className="slide-card" 
+                  style={{ 
+                    backgroundColor: themeData.bg_color, 
+                    color: themeData.text_color,
+                    fontFamily: slide.kind === 'title' ? themeData.title_font : themeData.body_font
+                  }}
+                >
+                  {slide.kind === 'title' && (
+                    <>
+                      <div className="accent-bar" style={{ backgroundColor: themeData.primary_color }} />
+                      <div className="slide-title" style={{ color: themeData.primary_color }}>{slide.title}</div>
+                      {slide.subtitle && <div className="slide-subtitle">{slide.subtitle}</div>}
+                    </>
+                  )}
+                  {slide.kind === 'bullets' && (
+                    <>
+                      <div className="slide-title" style={{ color: themeData.primary_color }}>{slide.title}</div>
+                      <div className="separator-line" style={{ backgroundColor: themeData.primary_color }} />
+                      <ul className="slide-bullets">
+                        {slide.bullets?.map((b, bi) => (
+                          <li key={bi}>{b}</li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                  <div className="slide-number">{index + 1}</div>
+                </div>
+              ))
+            ) : (
+              <div style={{ fontSize: '0.85rem', color: '#64748b', textAlign: 'center', marginTop: '2rem', padding: '1rem' }}>
+                {t.previewEmpty}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="setting-group">
-          <label>{t.apiKeyLabel}</label>
-          <input 
-            type="password" 
-            placeholder={t.apiKeyPlaceholder}
-            value={apiKey} 
-            onChange={(e) => setApiKey(e.target.value)} 
-          />
-        </div>
-
-        <div className="setting-group">
-          <label>{t.themeLabel}</label>
-          <button className="btn" onClick={handleSelectDesign}>
-            {designPath ? t.themeChange : t.themeSelect}
-          </button>
-          <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.2rem' }}>
-            {designPath || t.themeNone}
-          </span>
-        </div>
-
-        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
           <button 
             className="btn btn-primary" 
-            style={{ padding: '1.2rem', fontSize: '1.1rem' }}
+            style={{ padding: '0.9rem', fontSize: '1rem' }}
             onClick={handleGenerateFromChat} 
-            disabled={!designPath || !apiKey || messages.length <= 1}
+            disabled={!designPath || !apiKey || parsedSlides.length === 0}
           >
             {t.exportBtn}
           </button>

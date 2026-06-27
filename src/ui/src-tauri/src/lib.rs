@@ -58,12 +58,33 @@ async fn chat_with_ai(message: String, provider: String, api_key: String, langua
     }
 }
 
+#[tauri::command]
+async fn get_theme_tokens(design_path: String) -> Result<String, String> {
+    use std::process::Command;
+    let output = Command::new("python")
+        .arg("../../engine/design2ppt.py")
+        .arg("--design").arg(design_path)
+        .arg("--parse-only")
+        .arg("--out").arg("dummy")
+        .output()
+        .map_err(|e| format!("Failed to spawn python process: {}", e))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+    if output.status.success() {
+        Ok(stdout)
+    } else {
+        Err(format!("Error: {}", stderr))
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![generate_ppt, chat_with_ai])
+        .invoke_handler(tauri::generate_handler![generate_ppt, chat_with_ai, get_theme_tokens])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

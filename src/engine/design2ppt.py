@@ -33,8 +33,15 @@ def main():
     parser.add_argument("--provider", default="gemini", help="AI provider (gemini, perplexity, openai)")
     parser.add_argument("--api-key", default="", help="API key for the chosen provider")
     parser.add_argument("--language", default="Korean", help="Target output language")
+    parser.add_argument("--parse-only", action="store_true", help="Print theme as JSON and exit")
     
     args = parser.parse_args()
+    
+    if args.parse_only:
+        import json
+        theme = parse_design_md(args.design)
+        print(json.dumps(theme.__dict__))
+        sys.exit(0)
     
     # Ensure output directory exists
     out_dir = os.path.dirname(args.out)
