@@ -44,6 +44,15 @@
 .row {
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 1em;
+  margin-bottom: 1.5em;
+}
+
+label {
+  font-weight: 600;
+  font-size: 1.05em;
+  cursor: pointer;
 }
 
 a {
@@ -61,17 +70,27 @@ h1 {
 }
 
 input,
-button {
+button,
+select {
   border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
+  border: 1px solid #ccc;
+  padding: 0.8em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
   color: #0f0f0f;
   background-color: #ffffff;
-  transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+  transition: border-color 0.25s, box-shadow 0.25s, background-color 0.25s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+input:focus,
+select:focus,
+button:focus {
+  border-color: #4CAF50;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+  background-color: #f0fff0;
 }
 
 button {
@@ -106,9 +125,17 @@ button {
   }
 
   input,
-  button {
+  button,
+  select {
     color: #ffffff;
-    background-color: #0f0f0f98;
+    background-color: #1a1a1a;
+    border: 1px solid #444;
+  }
+  
+  input:focus,
+  select:focus,
+  button:focus {
+    background-color: #113311;
   }
   button:active {
     background-color: #0f0f0f69;
